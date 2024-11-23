@@ -1,0 +1,280 @@
+---
+title: "Final_Project_SantiagoGutierrez"
+author: "Santiago Gutierrez"
+date: "2023-12-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("readr")
+
+library(readr)
+```
+# 490 Final Project
+The goal of this project is to construct a model to predict whether a packet of network traffic is anomalous or not (normal).  
+
+
+This dataset has nine types of attacks, namely, Fuzzers, Analysis, Backdoors, DoS, Exploits, Generic, Reconnaissance, Shellcode and Worms.
+
+
+
+## Training data set 
+```{r}
+trainingDataset <- read_csv("UNSW_NB15_training-set.csv")
+
+head(trainingDataset)
+
+summary(trainingDataset)
+
+#str(trainingDataset)
+
+show_col_types = FALSE
+```
+
+
+## Testing data set
+```{r}
+testingDataset <- read_csv("UNSW_NB15_testing-set.csv")
+
+head(testingDataset)
+
+summary(testingDataset)
+
+#str(testingDataset)
+show_col_types = FALSE
+```
+
+
+
+## “attack_cat” and “label”
+
+We will be using “label” and ignoring “attack_cat”.  Notice that “label” is 0 for normal traffic and 1 for anomalous traffic.  
+
+
+
+## Training table "label"
+```{r}
+table(trainingDataset$label)
+
+
+label_table <- table(trainingDataset$label)
+
+total_rows <- sum(label_table)
+
+percentage_0 <- (label_table[1] / total_rows) * 100
+percentage_1 <- (label_table[2] / total_rows) * 100
+
+percentage_0 #percentage of 0s on the training data set
+percentage_1 #percentage of 1s on the training data set
+```
+
+
+## Testing table "label"
+
+```{r}
+table(testingDataset$label)
+
+label_table <- table(testingDataset$label)
+
+total_rows <- sum(label_table)
+
+percentage_0 <- (label_table[1] / total_rows) * 100
+percentage_1 <- (label_table[2] / total_rows) * 100
+
+percentage_0 #percentage of 0s on the testing data set
+percentage_1 #percentage of 1s on the testing data set
+
+```
+
+
+#### Proportion of 0s in the testing data set is 44.94% and in the training data set is 31.93%
+
+#### Proportion of 1s in the testing data set is 55.06% and in the training data set is 68.06%
+
+
+
+
+# First model
+### First model using rate + dpkts + sbytes + dbytes + sqrt(dur) + state + service
+```{r}
+# 1st regression model
+glm.fit <- glm(label ~ rate + dpkts + sbytes + dbytes + sqrt(dur) + state + service, 
+               data = trainingDataset, family = binomial)
+
+glm.probs <- predict(glm.fit, trainingDataset, type = "response")
+
+# Convert predicted probabilities to binary predictions (0 or 1)
+glm.pred <- ifelse(glm.probs > 0.5, 1, 0)
+
+```
+
+
+### Predicted probabilities for the first 10 
+```{r}
+# Display or use the predicted probabilities for the first 10 observations
+print(glm.probs[1:10])
+```
+
+### Checking the accuracy of the model using the mean of the predictions
+## Accuracy of 53.53% 
+```{r}
+
+# Calculate accuracy (mean of correct predictions)
+accuracy <- mean(glm.pred == testingDataset$label)
+print(accuracy)
+```
+
+### Ploting the model created in comparision with the smean of the data base.
+```{r}
+plot(trainingDataset$smean, glm.probs, col = trainingDataset$label, pch = 16)
+abline(h = 0.5, col = "red", lty = 1)
+```
+
+### Confusion matrix #1
+```{r}
+#Confusion matrix table
+conf_matrix <- table(glm.pred, trainingDataset$label)
+print(conf_matrix)
+
+```
+
+
+True Positive (TP): The model correctly predicted 114,513 instances as class 1.
+
+True Negative (TN): The model correctly predicted 36,991 instances as class 0.
+
+False Positive (FP): The model incorrectly predicted 4,828 instances as class 1 when they were actually class 0. (Type I error or False Alarm)
+
+False Negative (FN): The model incorrectly predicted 19,009 instances as class 0 when they were actually class 1. (Type II error or Miss)
+
+
+
+
+
+
+
+
+
+
+# Second model
+### Second model using rate + dpkts +  spkts + sbytes + sinpkt + dbytes + sqrt(sload)+ sqrt(dur) + rate + state + service +  smean
+```{r}
+# 2th logistic regression model
+glm.fit <- glm(label ~ rate + dpkts +  spkts + sbytes + sinpkt + dbytes + sqrt(sload)+ sqrt(dur) + rate + state + service +  smean, data = trainingDataset, family = binomial)
+
+glm.probs <- predict(glm.fit, trainingDataset, type = "response")
+
+# Convert predicted probabilities to binary predictions (0 or 1)
+glm.pred <- ifelse(glm.probs > 0.5, 1, 0)
+
+```
+
+
+### Predicted probabilities for the first 10 
+```{r}
+# Display or use the predicted probabilities for the first 10 observations
+print(glm.probs[1:10])
+```
+
+### Checking the accuracy of the model using the mean of the predictions
+## Accuracy of 54.70% 
+```{r}
+
+# Calculate accuracy (mean of correct predictions)
+accuracy <- mean(glm.pred == testingDataset$label)
+print(accuracy)
+```
+
+### Ploting the model created in comparision with the smean of the data base.
+```{r}
+plot(trainingDataset$smean, glm.probs, col = trainingDataset$label, pch = 16)
+abline(h = 0.5, col = "green", lty = 1)
+```
+
+### Confusion matrix #2
+```{r}
+conf_matrix <- table(glm.pred, trainingDataset$label)
+print(conf_matrix)
+
+```
+
+
+True Positive (TP): The model correctly predicted 115,693 instances as class 1.
+
+True Negative (TN): The model correctly predicted 3,648 instances as class 0.
+
+False Positive (FP): The model incorrectly predicted 40,685 instances as class 1 when they were actually class 0. (Type I error or False Alarm)
+
+False Negative (FN): The model incorrectly predicted 15,315  instances as class 0 when they were actually class 1. (Type II error or Miss)
+
+
+
+
+
+
+# Third model
+### Third model using stcpb + swin + dur*dur + dpkts + dbytes + smean + ct_srv_dst +is_sm_ips_ports  + ct_state_ttl + ct_src_ltm
+```{r}
+# 3rd regression model
+
+glm.fit <- glm(label ~  stcpb + swin + dur*dur + dpkts + dbytes + smean + ct_srv_dst +is_sm_ips_ports  + ct_state_ttl + ct_src_ltm , data = trainingDataset, family = binomial)
+
+# Make predictions on the testing dataset
+glm.probs <- predict(glm.fit, trainingDataset, type = "response")
+
+# Convert predicted probabilities to binary predictions (0 or 1)
+glm.pred <- ifelse(glm.probs > 0.5, 1, 0)
+
+
+```
+
+
+### Predicted probabilities for the first 10 
+```{r}
+# Display or use the predicted probabilities for the first 10 observations
+print(glm.probs[1:10])
+```
+
+### Checking the accuracy of the model using the mean of the predictions
+## Accuracy of 55.70% 
+```{r}
+
+# Calculate accuracy (mean of correct predictions)
+
+accuracy <- mean(glm.pred == testingDataset$label)
+print(accuracy)
+```
+
+### Ploting the model created in comparision with the smean of the data base.
+```{r}
+plot(trainingDataset$smean, glm.probs, col = trainingDataset$label, pch = 16)
+abline(h = 0.5, col = "blue", lty = 1)
+```
+
+### Confusion matrix #3
+```{r}
+conf_matrix <- table(glm.pred, trainingDataset$label)
+print(conf_matrix)
+
+```
+
+
+True Positive (TP): The model correctly predicted 118,473 instances as class 1.
+
+True Negative (TN): The model correctly predicted 42,683 instances as class 0.
+
+False Positive (FP): The model incorrectly predicted 868 instances as class 1 when they were actually class 0. 
+
+False Negative (FN): The model incorrectly predicted 13,317  instances as class 0 when they were actually class 1. 
+
+
+
+# Conclusions:
+
+### While I did not achieve the targeted 65% accuracy, the various enhancements made across models resulted in an overall improvement of nearly 3%. This improvement reflects a deeper understanding of the dataset and the implementation of different methods to facilitate a more robust comparison of data.
+
+### During the thorough checking and guessing process across all 49 different rows, a observation that caught my attention was the presence of substantial outliers in some rows. These outliers often negatively impacted the model's ability to make accurate predictions.
+
+### In the final model, there was a noticeable precision in predicting class 1, but a corresponding challenge in predicting class 0. Although this pattern contributed to a higher overall accuracy percentage, it affected the False Negative results. Addressing this pattern could be a focal point for further refinement in future iterations.
